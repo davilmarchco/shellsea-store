@@ -16,7 +16,7 @@ export function ShellSeaLogo({ className }: ShellSeaLogoProps) {
         <svg
           viewBox="0 0 64 64"
           aria-hidden="true"
-          className="mb-[0.12em] h-[clamp(2rem,7vw,4.2rem)] w-auto text-primary-foreground"
+          className="mb-[0.12em] h-[clamp(2rem,7vw,4.2rem)] w-auto text-teal"
         >
           <path
             fill="currentColor"
