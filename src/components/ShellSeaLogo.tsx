@@ -11,7 +11,7 @@ export interface ShellSeaLogoProps {
 export function ShellSeaLogo({ className }: ShellSeaLogoProps) {
   return (
     <div className={cn("flex flex-col items-center", className)}>
-      <div className="flex items-end justify-center gap-1 text-brandblue">
+      <div className="flex items-end justify-center gap-1 text-primary-foreground drop-shadow-[0_2px_12px_oklch(0.19_0.01_260_/_0.55)]">
         <span className="font-script text-[clamp(3rem,11vw,6.5rem)] leading-[0.85]">She</span>
         <svg
           viewBox="0 0 64 64"
@@ -25,7 +25,7 @@ export function ShellSeaLogo({ className }: ShellSeaLogoProps) {
         </svg>
         <span className="font-script text-[clamp(3rem,11vw,6.5rem)] leading-[0.85]">sea</span>
       </div>
-      <div className="mt-1 flex w-full items-center justify-center gap-3 text-brandblue">
+      <div className="mt-1 flex w-full items-center justify-center gap-3 text-primary-foreground drop-shadow-[0_2px_12px_oklch(0.19_0.01_260_/_0.55)]">
         <span className="h-px w-8 bg-current sm:w-12" />
         <span className="text-[clamp(0.7rem,2vw,1.05rem)] font-medium tracking-[0.35em] lowercase">
           beachwear
