@@ -1,5 +1,6 @@
 const MESSAGES = [
-  'USE O CUPOM DE PRIMEIRA COMPRA "MAR DE CONCHAS"',
+  "NA COMPRA DE 1 BIQUÍNI, GANHE UMA PEDRA OU PINGENTE PARA PERSONALIZAR",
+  'RESGATE SEU CUPOM "MARDECONCHAS" PARA 10% OFF NA PRIMEIRA COMPRA',
   "PARCELE EM ATÉ 3X SEM JUROS",
 ];
 
@@ -18,7 +19,7 @@ export function MarqueeBar() {
             {loop.map((message, index) => (
               <span
                 key={`${copy}-${index}`}
-                className="px-8 text-[0.7rem] font-bold tracking-wide sm:text-xs"
+                className="px-8 font-heading text-[0.7rem] font-semibold tracking-wide sm:text-xs"
               >
                 {message}
               </span>

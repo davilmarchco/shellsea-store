@@ -1,13 +1,16 @@
 import { ChevronDown, Search, ShoppingBag, User } from "lucide-react";
+import { useSiteUI } from "@/lib/site-ui";
 
 const NAV_ITEMS = [
   { label: "Início", href: "#inicio", hasDropdown: false },
   { label: "Sobre Nós", href: "#quem-somos", hasDropdown: false },
-  { label: "Coleções", href: "#catalogo", hasDropdown: true },
+  { label: "Coleções", href: "#vitrine", hasDropdown: true },
 ] as const;
 
 /** Transparent header that sits over the hero image. */
 export function SiteHeader() {
+  const { openSearch, openAuth, openCart, cartCount } = useSiteUI();
+
   return (
     <header className="absolute inset-x-0 top-0 z-20">
       <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-5 sm:px-6 lg:grid-cols-[1fr_auto_1fr]">
@@ -32,11 +35,17 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex shrink-0 items-center justify-end gap-4 text-primary-foreground lg:gap-6">
-          <button type="button" aria-label="Buscar" className="transition-opacity hover:opacity-70">
+          <button
+            type="button"
+            onClick={openSearch}
+            aria-label="Buscar"
+            className="transition-opacity hover:opacity-70"
+          >
             <Search className="h-5 w-5" />
           </button>
           <button
             type="button"
+            onClick={openAuth}
             aria-label="Minha conta"
             className="transition-opacity hover:opacity-70"
           >
@@ -44,12 +53,13 @@ export function SiteHeader() {
           </button>
           <button
             type="button"
+            onClick={openCart}
             aria-label="Sacola de compras"
             className="relative transition-opacity hover:opacity-70"
           >
             <ShoppingBag className="h-5 w-5" />
             <span className="absolute -top-2 -right-2 grid h-4 w-4 place-items-center rounded-full bg-hotpink text-[0.6rem] font-bold text-hotpink-foreground">
-              0
+              {cartCount}
             </span>
           </button>
         </div>

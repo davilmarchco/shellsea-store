@@ -1,5 +1,6 @@
-import heroDesktop from "@/assets/hero-desktop.jpg.asset.json";
-import heroMobile from "@/assets/hero-mobile.jpg.asset.json";
+import { motion } from "framer-motion";
+import heroPhoto from "@/assets/hero-photo.jpg";
+import { EASE_OUT } from "@/lib/motion";
 import { SiteHeader } from "./SiteHeader";
 import { ShellSeaLogo } from "./ShellSeaLogo";
 
@@ -9,39 +10,57 @@ import { ShellSeaLogo } from "./ShellSeaLogo";
  */
 export function Hero() {
   return (
-    <section id="inicio" className="relative isolate min-h-[85svh] overflow-hidden lg:min-h-[92svh]">
-      <picture>
-        <source media="(min-width: 768px)" srcSet={heroDesktop.url} />
-        <img
-          src={heroMobile.url}
-          alt="Praia de águas cristalinas cercada por mata atlântica"
-          className="absolute inset-0 h-full w-full object-cover"
-          fetchPriority="high"
-        />
-      </picture>
+    <section id="inicio" className="relative isolate min-h-[90svh] overflow-hidden lg:min-h-[97svh]">
+      <img
+        src={heroPhoto}
+        alt="Praia de águas cristalinas cercada por mata atlântica"
+        className="absolute inset-0 h-full w-full object-cover object-center"
+        fetchPriority="high"
+      />
       <div className="absolute inset-0 bg-foreground/15" />
 
       <SiteHeader />
 
-      <div className="relative z-10 flex min-h-[85svh] flex-col items-center justify-center gap-8 px-6 py-28 lg:min-h-[92svh]">
-        <ShellSeaLogo className="w-[min(70vw,26rem)]" />
-        <a
-          href="#catalogo"
+      <div className="relative z-10 flex min-h-[90svh] flex-col items-center justify-center gap-8 px-6 py-28 lg:min-h-[97svh]">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.94 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.9, ease: EASE_OUT }}
+        >
+          <ShellSeaLogo className="w-[min(70vw,26rem)]" />
+        </motion.div>
+        <motion.a
+          href="#vitrine"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5, ease: EASE_OUT }}
           className="rounded-full bg-primary/85 px-12 py-4 text-sm font-bold tracking-[0.15em] text-primary-foreground backdrop-blur-sm transition-colors hover:bg-primary"
         >
           CONFIRA
-        </a>
+        </motion.a>
       </div>
 
+      {/* Wave divider: wide, smooth, uniform crests — 3 on mobile, 4 on desktop. */}
       <svg
-        className="absolute inset-x-0 bottom-0 z-10 h-14 w-full text-background sm:h-20"
-        viewBox="0 0 1440 90"
+        className="absolute inset-x-0 bottom-0 z-10 h-16 w-full text-background sm:hidden"
+        viewBox="0 0 1440 140"
         preserveAspectRatio="none"
         aria-hidden="true"
       >
         <path
           fill="currentColor"
-          d="M0 42c180-38 340 22 520 26s300-40 480-34 260 44 440 26v30H0z"
+          d="M0,68 c120,0 120,-48 240,-48 c120,0 120,48 240,48 c120,0 120,-48 240,-48 c120,0 120,48 240,48 c120,0 120,-48 240,-48 c120,0 120,48 240,48 L1440,140 L0,140 Z"
+        />
+      </svg>
+      <svg
+        className="absolute inset-x-0 bottom-0 z-10 hidden h-24 w-full text-background sm:block"
+        viewBox="0 0 1440 140"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <path
+          fill="currentColor"
+          d="M0,68 c90,0 90,-48 180,-48 c90,0 90,48 180,48 c90,0 90,-48 180,-48 c90,0 90,48 180,48 c90,0 90,-48 180,-48 c90,0 90,48 180,48 c90,0 90,-48 180,-48 c90,0 90,48 180,48 L1440,140 L0,140 Z"
         />
       </svg>
     </section>

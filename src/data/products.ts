@@ -1,60 +1,224 @@
-export type SizeOption = "P" | "M" | "G" | "GG";
+import mareRoyalFront from "@/assets/products/mare-royal-front.jpg";
+import mareRoyalBack from "@/assets/products/mare-royal-back.jpg";
+import marePretoFront from "@/assets/products/mare-preto-front.jpg";
+import marePretoBack from "@/assets/products/mare-preto-back.jpg";
+import mareChocolateFront from "@/assets/products/mare-chocolate-front.jpg";
+import mareChocolateBack from "@/assets/products/mare-chocolate-back.jpg";
+import mareAreia from "@/assets/products/mare-areia.jpg";
+import orlaAzulBebeFront from "@/assets/products/orla-azul-bebe-front.jpg";
+import orlaAzulBebeBack from "@/assets/products/orla-azul-bebe-back.jpg";
+import orlaCastanhoFront from "@/assets/products/orla-castanho-front.jpg";
+import orlaCastanhoBack from "@/assets/products/orla-castanho-back.jpg";
+import orlaCerejaFront from "@/assets/products/orla-cereja-front.jpg";
+import orlaCerejaBack from "@/assets/products/orla-cereja-back.jpg";
+import orlaOffWhiteFront from "@/assets/products/orla-off-white-front.jpg";
+import orlaOffWhiteBack from "@/assets/products/orla-off-white-back.jpg";
+import orlaRosaBebeFront from "@/assets/products/orla-rosa-bebe-front.jpg";
+import orlaRosaBebeBack from "@/assets/products/orla-rosa-bebe-back.jpg";
+import orlaVerdeLimaoFront from "@/assets/products/orla-verde-limao-front.jpg";
+import orlaVerdeLimaoBack from "@/assets/products/orla-verde-limao-back.jpg";
+import pingenteSolDourado from "@/assets/products/pingente-sol-dourado.jpg";
+import pingenteEstrelaDourada from "@/assets/products/pingente-estrela-dourada.jpg";
+import pingenteConchaSerena from "@/assets/products/pingente-concha-serena.jpg";
+import pingenteConchaBrisa from "@/assets/products/pingente-concha-brisa.jpg";
+import pedraVerdeMenta from "@/assets/products/pedra-verde-menta.jpg";
+import pedraAzulPetroleo from "@/assets/products/pedra-azul-petroleo.jpg";
+import pedraAzulMarinho from "@/assets/products/pedra-azul-marinho.jpg";
+import pedraMiniLaranja from "@/assets/products/pedra-mini-laranja.jpg";
+import pedraMiniVerdeMenta from "@/assets/products/pedra-mini-verde-menta.jpg";
 
-export const SIZES: readonly SizeOption[] = ["P", "M", "G", "GG"] as const;
+export type SizeOption = "P" | "M" | "G";
 
-/** Stone / pendant options. Extend as the catalog options are confirmed. */
-export const STONE_OPTIONS: readonly string[] = ["Nenhuma"] as const;
-export const PENDANT_OPTIONS: readonly string[] = ["Nenhum"] as const;
+export const SIZES: readonly SizeOption[] = ["P", "M", "G"] as const;
+
+/** The three shopping lanes shown in the category vitrine. */
+export type ProductType = "biquini" | "pingente" | "pedra";
+
+export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
+  biquini: "Biquínis",
+  pingente: "Pingentes",
+  pedra: "Pedras",
+};
 
 export interface Product {
   id: string;
+  type: ProductType;
   model: string;
+  /** Color for biquinis, or the design/variant name for pingentes and pedras. */
   color: string;
   /** Small badge shown over the photo, e.g. the collection name. */
   badge?: string;
   price: number;
-  pixPrice: number;
   installments: number;
-  /** Product photo URL. Empty while the catalog photos are pending. */
-  image?: string;
+  /** Front-facing product photo. Empty while the catalog photos are pending. */
+  frontImage?: string;
+  /** Back-facing product photo, revealed on hover (desktop) or tap (mobile). */
+  backImage?: string;
 }
 
-export const CATEGORIES: readonly string[] = [
-  "Todos",
-  "Chocolate",
-  "Royal",
-  "Rosa-Bebê",
-  "Cereja",
-  "Verde-Limão",
-  "Castanho",
-  "Off-White",
-  "Preto*",
-  "Turquesa*",
-] as const;
-
-const BASE = { price: 130, pixPrice: 124.8, installments: 3 } as const;
+const BASE = {
+  type: "biquini",
+  model: "Biquíni Maré",
+  badge: "MARÉ",
+  price: 79.9,
+  installments: 3,
+} as const;
+const ORLA_BASE = {
+  type: "biquini",
+  model: "Biquíni Orla",
+  badge: "ORLA",
+  price: 79.9,
+  installments: 3,
+} as const;
+const PINGENTE_BASE = {
+  type: "pingente",
+  model: "Pingente",
+  installments: 1,
+} as const;
+const PEDRA_BASE = {
+  type: "pedra",
+  model: "Pedra",
+  installments: 1,
+} as const;
+const MINI_PEDRA_BASE = {
+  type: "pedra",
+  model: "Mini Pedra",
+  installments: 1,
+} as const;
 
 export const PRODUCTS: readonly Product[] = [
-  { id: "mare-chocolate", model: "Biquíni Maré", color: "Chocolate", badge: "MARÉ", ...BASE },
-  { id: "mare-royal", model: "Biquíni Maré", color: "Royal", badge: "MARÉ", ...BASE },
-  { id: "orla-rosa-bebe", model: "Biquíni Orla", color: "Rosa-Bebê", badge: "ORLA", ...BASE },
-  { id: "orla-cereja", model: "Biquíni Orla", color: "Cereja", badge: "ORLA", ...BASE },
-  { id: "orla-verde-limao", model: "Biquíni Orla", color: "Verde-Limão", badge: "ORLA", ...BASE },
-  { id: "orla-castanho", model: "Biquíni Orla", color: "Castanho", badge: "ORLA", ...BASE },
-  { id: "orla-off-white", model: "Biquíni Orla", color: "Off-White", badge: "ORLA", ...BASE },
   {
-    id: "shell-sea-preto",
-    model: "Biquíni Shell Sea",
-    color: "Preto (confirmar nome)",
-    badge: "CONFIRMAR NOME",
+    id: "mare-royal",
+    color: "Royal",
+    frontImage: mareRoyalBack,
+    backImage: mareRoyalFront,
     ...BASE,
   },
   {
-    id: "shell-sea-turquesa",
-    model: "Biquíni Shell Sea",
-    color: "Turquesa (confirmar nome)",
-    badge: "CONFIRMAR NOME",
+    id: "mare-preto",
+    color: "Preto",
+    frontImage: marePretoFront,
+    backImage: marePretoBack,
     ...BASE,
+  },
+  {
+    id: "mare-chocolate",
+    color: "Chocolate",
+    frontImage: mareChocolateBack,
+    backImage: mareChocolateFront,
+    ...BASE,
+  },
+  {
+    id: "mare-areia",
+    color: "Areia",
+    frontImage: mareAreia,
+    // Single studio photo only — the back-swap interaction is disabled for this item.
+    ...BASE,
+  },
+  {
+    id: "orla-azul-bebe",
+    color: "Azul Bebê",
+    frontImage: orlaAzulBebeFront,
+    backImage: orlaAzulBebeBack,
+    ...ORLA_BASE,
+  },
+  {
+    id: "orla-castanho",
+    color: "Castanho",
+    frontImage: orlaCastanhoFront,
+    backImage: orlaCastanhoBack,
+    ...ORLA_BASE,
+  },
+  {
+    id: "orla-cereja",
+    color: "Cereja",
+    frontImage: orlaCerejaFront,
+    backImage: orlaCerejaBack,
+    ...ORLA_BASE,
+  },
+  {
+    id: "orla-off-white",
+    color: "Off-White",
+    frontImage: orlaOffWhiteFront,
+    backImage: orlaOffWhiteBack,
+    ...ORLA_BASE,
+  },
+  {
+    id: "orla-rosa-bebe",
+    color: "Rosa-Bebê",
+    frontImage: orlaRosaBebeFront,
+    backImage: orlaRosaBebeBack,
+    ...ORLA_BASE,
+  },
+  {
+    id: "orla-verde-limao",
+    color: "Verde-Limão",
+    frontImage: orlaVerdeLimaoFront,
+    backImage: orlaVerdeLimaoBack,
+    ...ORLA_BASE,
+  },
+  {
+    id: "pingente-sol-dourado",
+    color: "Sol Dourado",
+    price: 6,
+    frontImage: pingenteSolDourado,
+    ...PINGENTE_BASE,
+  },
+  {
+    id: "pingente-estrela-dourada",
+    color: "Estrela Dourada",
+    price: 1.5,
+    frontImage: pingenteEstrelaDourada,
+    ...PINGENTE_BASE,
+  },
+  {
+    id: "pingente-concha-serena",
+    color: "Concha Serena",
+    price: 2,
+    frontImage: pingenteConchaSerena,
+    ...PINGENTE_BASE,
+  },
+  {
+    id: "pingente-concha-brisa",
+    color: "Concha Brisa",
+    price: 3,
+    frontImage: pingenteConchaBrisa,
+    ...PINGENTE_BASE,
+  },
+  {
+    id: "pedra-verde-menta",
+    color: "Verde Menta",
+    price: 2,
+    frontImage: pedraVerdeMenta,
+    ...PEDRA_BASE,
+  },
+  {
+    id: "pedra-azul-petroleo",
+    color: "Azul Petróleo",
+    price: 2,
+    frontImage: pedraAzulPetroleo,
+    ...PEDRA_BASE,
+  },
+  {
+    id: "pedra-azul-marinho",
+    color: "Azul Marinho",
+    price: 2,
+    frontImage: pedraAzulMarinho,
+    ...PEDRA_BASE,
+  },
+  {
+    id: "pedra-mini-laranja",
+    color: "Laranja",
+    price: 1.5,
+    frontImage: pedraMiniLaranja,
+    ...MINI_PEDRA_BASE,
+  },
+  {
+    id: "pedra-mini-verde-menta",
+    color: "Verde Menta",
+    price: 1.5,
+    frontImage: pedraMiniVerdeMenta,
+    ...MINI_PEDRA_BASE,
   },
 ];
 

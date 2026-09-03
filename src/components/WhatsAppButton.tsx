@@ -1,11 +1,11 @@
-/** Floating WhatsApp contact button. Number to be configured by the store. */
+/** Floating WhatsApp button — support and personalized service only, not checkout. */
 export function WhatsAppButton() {
   return (
     <a
-      href="https://wa.me/5500000000000"
+      href="https://wa.me/5521993734339"
       target="_blank"
       rel="noopener noreferrer"
-      aria-label="Falar no WhatsApp"
+      aria-label="Atendimento e suporte no WhatsApp"
       className="fixed right-4 bottom-4 z-40 grid h-14 w-14 place-items-center rounded-full bg-teal text-teal-foreground shadow-lg transition-transform hover:scale-105 sm:right-6 sm:bottom-6"
     >
       <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-current">

@@ -1,37 +1,30 @@
-import aboutDesktop from "@/assets/about-desktop.jpg.asset.json";
-import aboutMobile from "@/assets/about-mobile.jpg.asset.json";
+import { Reveal } from "./Reveal";
 
-/** "Quem somos nós?" section: brand story over the beach photo. */
+/** "Quem somos nós?" content: brand story, text-only. */
 export function AboutSection() {
   return (
-    <section id="quem-somos" className="bg-cream py-14 sm:py-20">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <h2 className="text-center font-script text-4xl text-coral sm:text-5xl">Quem somos nós?</h2>
+    <Reveal>
+      <h2 className="text-center font-script text-4xl text-hotpink sm:text-5xl">Quem somos nós?</h2>
 
-        <div className="mx-auto mt-8 max-w-3xl space-y-4 text-center text-sm leading-relaxed text-muted-foreground sm:text-base">
-          <p>
-            A Shell Sea nasceu do encontro entre duas amigas, o mar e o crochê feito à mão. Cada
-            biquíni é criado ponto por ponto, pensando no caimento, no conforto e naquela
-            sensação de liberdade de um dia inteiro de praia.
-          </p>
-          <p>
-            Trabalhamos com peças em pequenas quantidades, cores autorais e detalhes em conchas e
-            pedras naturais — para que cada peça seja tão única quanto quem a veste.
-          </p>
-        </div>
-
-        <figure className="relative mt-10 overflow-hidden rounded-2xl">
-          <picture>
-            <source media="(min-width: 768px)" srcSet={aboutDesktop.url} />
-            <img
-              src={aboutMobile.url}
-              alt="Duas amigas na praia usando biquínis de crochê da Shell Sea"
-              loading="lazy"
-              className="h-[22rem] w-full object-cover object-center sm:h-[26rem] lg:h-[30rem]"
-            />
-          </picture>
-        </figure>
+      <div className="mx-auto mt-8 max-w-3xl space-y-4 text-center text-sm leading-relaxed text-muted-foreground sm:text-base">
+        <p>
+          O nome SheLL Sea carrega um significado muito especial. <em>Shell</em>, em inglês,
+          significa concha, um dos elementos que mais representa o universo do mar e a inspiração da
+          nossa marca. Shell + Sea, o nosso "mar de conchas"! 🌊🐚
+        </p>
+        <p>
+          Mas existe um detalhe ainda mais importante: os dois{" "}
+          <strong className="font-bold text-coral">"L"</strong> maiúsculos em{" "}
+          <strong className="font-bold text-coral">SheLL</strong> representam{" "}
+          <strong className="font-bold text-foreground">Lara</strong> e{" "}
+          <strong className="font-bold text-foreground">Laura</strong>. 🌺
+        </p>
+        <p>
+          Mais do que uma marca de moda praia, a SheLL Sea nasceu no litoral do Rio de Janeiro,
+          criada por nós duas, com carinho, criatividade e a vontade de trazer peças que tenham a
+          nossa essência — e que também possam fazer parte da sua.
+        </p>
       </div>
-    </section>
+    </Reveal>
   );
 }
