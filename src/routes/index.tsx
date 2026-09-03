@@ -11,24 +11,29 @@ import { CatalogOverlay } from "@/components/CatalogOverlay";
 import { CartDrawer } from "@/components/CartDrawer";
 import { AuthModal } from "@/components/AuthModal";
 import { SearchOverlay } from "@/components/SearchOverlay";
+import { ProductQuickView } from "@/components/ProductQuickView";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Shell Sea Beachwear | Biquínis exclusivos feitos à mão" },
+      { title: "SheLL Sea | Beachwear" },
       {
         name: "description",
         content:
-          "Biquínis artesanais da Shell Sea, com pingentes e pedras para completar seu conjunto. Parcele em até 3x sem juros.",
+          "Biquínis artesanais da SheLL Sea, com pingentes e pedras para completar seu conjunto. Parcele em até 3x sem juros.",
       },
-      { property: "og:title", content: "Shell Sea Beachwear | Biquínis exclusivos feitos à mão" },
+      { property: "og:title", content: "SheLL Sea | Beachwear" },
       {
         property: "og:description",
         content:
           "Coleção de biquínis artesanais feitos à mão, com pedras e pingentes para completar seu conjunto.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:image", content: "/og-image.png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: "/og-image.png" },
     ],
   }),
   component: Index,
@@ -55,6 +60,7 @@ function Index() {
       <CartDrawer />
       <AuthModal />
       <SearchOverlay />
+      <ProductQuickView />
     </div>
   );
 }

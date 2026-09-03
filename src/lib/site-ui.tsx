@@ -34,6 +34,10 @@ interface SiteUIState {
   searchOpen: boolean;
   openSearch: () => void;
   closeSearch: () => void;
+
+  quickViewProduct: Product | null;
+  openQuickView: (product: Product) => void;
+  closeQuickView: () => void;
 }
 
 const SiteUIContext = createContext<SiteUIState | null>(null);
@@ -48,6 +52,7 @@ export function SiteUIProvider({ children }: { children: ReactNode }) {
   const [cartLines, setCartLines] = useState<CartLine[]>([]);
   const [authOpen, setAuthOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
 
   const addToCart = useCallback((line: CartLineInput) => {
     const key = lineKey(line);
@@ -103,6 +108,10 @@ export function SiteUIProvider({ children }: { children: ReactNode }) {
       searchOpen,
       openSearch: () => setSearchOpen(true),
       closeSearch: () => setSearchOpen(false),
+
+      quickViewProduct,
+      openQuickView: (product) => setQuickViewProduct(product),
+      closeQuickView: () => setQuickViewProduct(null),
     }),
     [
       activeCatalog,
@@ -115,6 +124,7 @@ export function SiteUIProvider({ children }: { children: ReactNode }) {
       clearCart,
       authOpen,
       searchOpen,
+      quickViewProduct,
     ],
   );
 

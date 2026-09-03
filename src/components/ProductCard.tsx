@@ -61,7 +61,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const [showBack, setShowBack] = useState(false);
   const hoverCapable = useHoverCapable();
   const hasBack = Boolean(product.backImage);
-  const { addToCart, openCart } = useSiteUI();
+  const { addToCart, openCart, openQuickView } = useSiteUI();
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   const installmentValue = product.price / product.installments;
@@ -168,20 +168,27 @@ export function ProductCard({ product }: ProductCardProps) {
       </div>
 
       <div className="flex flex-1 flex-col px-2.5 pt-3 text-center sm:px-4 sm:pt-4">
-        <h3 className="text-[0.7rem] font-bold tracking-wide text-foreground uppercase sm:text-sm">
-          {product.model}
-        </h3>
-        <p className="mt-0.5 text-[0.65rem] font-bold tracking-wide text-brandblue uppercase sm:mt-1 sm:text-sm">
-          {isBiquini ? `Cor: ${product.color}` : product.color}
-        </p>
-        <p className="mt-1.5 text-base font-bold text-foreground sm:mt-2 sm:text-xl">
-          {formatBRL(product.price)}
-        </p>
-        {product.installments > 1 ? (
-          <p className="mt-0.5 text-[0.6rem] tracking-wide text-muted-foreground uppercase sm:text-xs">
-            {product.installments} x de {formatBRL(installmentValue)} sem juros
+        <button
+          type="button"
+          onClick={() => openQuickView(product)}
+          className="w-full text-center"
+          aria-label={`Ver detalhes de ${product.model} ${product.color}`}
+        >
+          <h3 className="text-[0.7rem] font-bold tracking-wide text-foreground uppercase transition-colors hover:text-brandblue sm:text-sm">
+            {product.model}
+          </h3>
+          <p className="mt-0.5 text-[0.65rem] font-bold tracking-wide text-brandblue uppercase sm:mt-1 sm:text-sm">
+            {isBiquini ? `Cor: ${product.color}` : product.color}
           </p>
-        ) : null}
+          <p className="mt-1.5 text-base font-bold text-foreground sm:mt-2 sm:text-xl">
+            {formatBRL(product.price)}
+          </p>
+          {product.installments > 1 ? (
+            <p className="mt-0.5 text-[0.6rem] tracking-wide text-muted-foreground uppercase sm:text-xs">
+              {product.installments} x de {formatBRL(installmentValue)} sem juros
+            </p>
+          ) : null}
+        </button>
 
         {isBiquini ? (
           <div className="mt-3 rounded-md border border-border p-2 sm:mt-4 sm:p-3">

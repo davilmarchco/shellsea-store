@@ -112,7 +112,7 @@ export function DiscountPopup() {
             <div className="flex flex-col justify-center overflow-hidden px-6 py-10 text-center sm:px-10">
               {success ? (
                 <div className="space-y-2 py-8">
-                  <p className="font-heading text-2xl font-bold text-coral">Cadastro recebido!</p>
+                  <p className="font-heading text-2xl font-bold text-hotpink">Cadastro recebido!</p>
                   <p className="text-sm text-muted-foreground">
                     Seu cupom <strong className="text-foreground">{COUPON_CODE}</strong> já está
                     ativo. Use-o na sua primeira compra para garantir 10% de desconto.
@@ -120,7 +120,7 @@ export function DiscountPopup() {
                 </div>
               ) : (
                 <>
-                  <p className="font-heading text-4xl font-extrabold tracking-wide text-coral">
+                  <p className="font-heading text-4xl font-extrabold tracking-wide text-hotpink">
                     10% OFF
                   </p>
                   <p className="mx-auto mt-3 max-w-xs text-sm text-muted-foreground">

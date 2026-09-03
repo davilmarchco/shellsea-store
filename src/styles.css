@@ -55,6 +55,8 @@
   --color-hotpink-foreground: var(--hotpink-foreground);
   --color-brandblue: var(--brandblue);
   --color-pix: var(--pix);
+  --color-whatsapp: var(--whatsapp);
+  --color-whatsapp-foreground: var(--whatsapp-foreground);
 }
 
 :root {
@@ -92,6 +94,8 @@
   --hotpink-foreground: oklch(1 0 0);
   --brandblue: oklch(0.569 0.0769 219);
   --pix: oklch(0.63 0.11 172);
+  --whatsapp: oklch(0.761 0.2015 149.7);
+  --whatsapp-foreground: oklch(1 0 0);
 }
 
 .dark {

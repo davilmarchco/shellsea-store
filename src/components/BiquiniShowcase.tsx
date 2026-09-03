@@ -10,7 +10,7 @@ export function BiquiniShowcase() {
           <p className="text-center font-script text-2xl text-hotpink sm:text-3xl">
             Seu biquíni, suas escolhas, sua concha.
           </p>
-          <p className="mx-auto mt-2 max-w-md text-center text-sm text-muted-foreground sm:text-base">
+          <p className="mx-auto mt-2 whitespace-nowrap text-center text-[clamp(0.7rem,3vw,1rem)] text-muted-foreground">
             Escolha o seu conjunto e personalize do jeito que quiser
           </p>
         </Reveal>
