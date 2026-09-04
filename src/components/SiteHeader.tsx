@@ -1,5 +1,7 @@
 import { ChevronDown, Search, ShoppingBag, User } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useSiteUI } from "@/lib/site-ui";
+import { useAuth } from "@/lib/auth";
 
 const NAV_ITEMS = [
   { label: "Início", href: "#inicio", hasDropdown: false },
@@ -10,6 +12,7 @@ const NAV_ITEMS = [
 /** Transparent header that sits over the hero image. */
 export function SiteHeader() {
   const { openSearch, openAuth, openCart, cartCount } = useSiteUI();
+  const { session } = useAuth();
 
   return (
     <header className="absolute inset-x-0 top-0 z-20">
@@ -43,14 +46,24 @@ export function SiteHeader() {
           >
             <Search className="h-5 w-5" />
           </button>
-          <button
-            type="button"
-            onClick={openAuth}
-            aria-label="Minha conta"
-            className="transition-opacity hover:opacity-70"
-          >
-            <User className="h-5 w-5" />
-          </button>
+          {session ? (
+            <Link
+              to="/minha-conta"
+              aria-label="Minha conta"
+              className="transition-opacity hover:opacity-70"
+            >
+              <User className="h-5 w-5 fill-current" />
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={openAuth}
+              aria-label="Entrar ou criar conta"
+              className="transition-opacity hover:opacity-70"
+            >
+              <User className="h-5 w-5" />
+            </button>
+          )}
           <button
             type="button"
             onClick={openCart}

@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { EASE_OUT } from "@/lib/motion";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { useSiteUI } from "@/lib/site-ui";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 type Mode = "signin" | "signup";
@@ -12,6 +12,7 @@ type Mode = "signin" | "signup";
 /** Elegant login/signup modal wired to Supabase Auth. */
 export function AuthModal() {
   const { authOpen, closeAuth } = useSiteUI();
+  const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState<Mode>("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -20,6 +21,7 @@ export function AuthModal() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
   useBodyScrollLock(authOpen);
 
   function reset() {
@@ -29,6 +31,7 @@ export function AuthModal() {
     setPassword("");
     setError(null);
     setSuccess(false);
+    setNeedsEmailConfirmation(false);
   }
 
   function handleClose() {
@@ -40,30 +43,28 @@ export function AuthModal() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
+    setSubmitting(true);
 
-    if (!supabase) {
-      setError("Login indisponível no momento. Tente novamente mais tarde.");
+    const result =
+      mode === "signin"
+        ? await signIn(email, password)
+        : await signUp({ name, email, password, phone });
+
+    setSubmitting(false);
+
+    if (result.error) {
+      setError(result.error);
       return;
     }
 
-    setSubmitting(true);
-    const { error: authError } =
-      mode === "signin"
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({
-            email,
-            password,
-            options: { data: { full_name: name, phone } },
-          });
-    setSubmitting(false);
-
-    if (authError) {
-      setError(authError.message);
+    if (result.needsEmailConfirmation) {
+      setNeedsEmailConfirmation(true);
+      setSuccess(true);
       return;
     }
 
     setSuccess(true);
-    window.setTimeout(handleClose, 1500);
+    window.setTimeout(handleClose, 1200);
   }
 
   return (
@@ -100,9 +101,26 @@ export function AuthModal() {
             {success ? (
               <div className="space-y-2 py-8 text-center">
                 <p className="font-heading text-xl font-bold text-coral">
-                  {mode === "signin" ? "Bem-vinda de volta!" : "Cadastro recebido!"}
+                  {needsEmailConfirmation
+                    ? "Quase lá!"
+                    : mode === "signin"
+                      ? "Bem-vinda de volta!"
+                      : "Cadastro recebido!"}
                 </p>
-                <p className="text-sm text-muted-foreground">Você já pode fechar esta janela.</p>
+                <p className="text-sm text-muted-foreground">
+                  {needsEmailConfirmation
+                    ? "Confirme seu e-mail para ativar sua conta e fazer login."
+                    : "Você já pode fechar esta janela."}
+                </p>
+                {needsEmailConfirmation ? (
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="mt-2 rounded-full bg-primary px-6 py-2.5 text-xs font-bold tracking-[0.05em] text-primary-foreground uppercase transition-colors hover:bg-primary/90"
+                  >
+                    Fechar
+                  </button>
+                ) : null}
               </div>
             ) : (
               <>

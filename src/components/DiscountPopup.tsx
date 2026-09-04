@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import aboutPhoto from "@/assets/about-photo.jpg";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { EASE_OUT } from "@/lib/motion";
 import { COUPON_CODE, DISCOUNT_POPUP_STORAGE_KEY as STORAGE_KEY } from "@/lib/coupon";
 
@@ -17,6 +17,7 @@ const inputClass =
  * or completing the form sets a localStorage flag so it never reopens.
  */
 export function DiscountPopup() {
+  const { signUp, session } = useAuth();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [name, setName] = useState("");
@@ -26,12 +27,24 @@ export function DiscountPopup() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
 
   useEffect(() => {
+    // Already a customer (signed up here or via the header modal) — no need to
+    // ask her to create an account again.
+    if (session) return;
     if (window.localStorage.getItem(STORAGE_KEY)) return;
     const timer = window.setTimeout(() => setOpen(true), SHOW_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [session]);
+
+  // Covers the edge case where she logs in via the header while this popup is
+  // already open (e.g. its timer fired first).
+  useEffect(() => {
+    if (!session || !open) return;
+    window.localStorage.setItem(STORAGE_KEY, "subscribed");
+    setOpen(false);
+  }, [session, open]);
 
   function dismiss() {
     window.localStorage.setItem(STORAGE_KEY, "dismissed");
@@ -46,26 +59,18 @@ export function DiscountPopup() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
-
-    if (!supabase) {
-      setError("Cadastro indisponível no momento. Tente novamente mais tarde.");
-      return;
-    }
-
     setSubmitting(true);
-    const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: name, phone } },
-    });
+
+    const result = await signUp({ name, email, password, phone });
     setSubmitting(false);
 
-    if (signUpError) {
-      setError(signUpError.message);
+    if (result.error) {
+      setError(result.error);
       return;
     }
 
     window.localStorage.setItem(STORAGE_KEY, "subscribed");
+    setNeedsEmailConfirmation(!!result.needsEmailConfirmation);
     setSuccess(true);
     window.setTimeout(() => setOpen(false), 1800);
   }
@@ -114,6 +119,9 @@ export function DiscountPopup() {
                 <div className="space-y-2 py-8">
                   <p className="font-heading text-2xl font-bold text-hotpink">Cadastro recebido!</p>
                   <p className="text-sm text-muted-foreground">
+                    {needsEmailConfirmation
+                      ? "Confirme seu e-mail para ativar sua conta. "
+                      : "Você já está logada! "}
                     Seu cupom <strong className="text-foreground">{COUPON_CODE}</strong> já está
                     ativo. Use-o na sua primeira compra para garantir 10% de desconto.
                   </p>
