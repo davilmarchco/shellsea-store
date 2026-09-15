@@ -3,7 +3,7 @@ import { getRequestUrl } from "@tanstack/react-start/server";
 import { Preference } from "mercadopago";
 import { z } from "zod";
 import { PRODUCTS } from "@/data/products";
-import { COUPON_CODE, COUPON_DISCOUNT } from "@/lib/coupon";
+import { COUPON_DISCOUNT, isCouponCodeValid } from "@/lib/coupon";
 import { isMercadoPagoTestToken, mercadoPagoConfig } from "@/lib/mercadopago";
 import { supabase } from "@/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabase-admin";
@@ -110,7 +110,7 @@ export const createCheckoutPreference = createServerFn({ method: "POST" })
 
     const verifiedCustomerId = await getVerifiedCustomerId(data.accessToken);
     let couponDiscount = 0;
-    if (data.couponCode?.trim().toUpperCase().replace(/\s+/g, "") === COUPON_CODE) {
+    if (data.couponCode && isCouponCodeValid(data.couponCode)) {
       if (verifiedCustomerId) {
         const { data: customer } = await supabaseAdmin
           .from("customers")

@@ -15,6 +15,7 @@ import {
   COUPON_DISCOUNT,
   hasUsedFirstPurchaseCoupon,
   isCouponActive,
+  isCouponCodeValid,
   markFirstPurchaseCouponUsed,
 } from "@/lib/coupon";
 
@@ -190,8 +191,7 @@ export function CartDrawer() {
   const grandTotal = total + shippingCost;
 
   function applyCoupon() {
-    const code = coupon.trim().toUpperCase().replace(/\s+/g, "");
-    if (code !== COUPON_CODE) {
+    if (!isCouponCodeValid(coupon)) {
       setCouponStatus("invalid");
       setCouponApplied(false);
       return;
@@ -489,7 +489,7 @@ export function CartDrawer() {
                     ) : null}
                     {couponStatus === "applied" ? (
                       <p className="text-xs font-semibold text-pix">
-                        Cupom ativo: 10% off na primeira compra ({formatBRL(couponDiscount)})
+                        Cupom {COUPON_CODE} aplicado! (-10%) · -{formatBRL(couponDiscount)}
                       </p>
                     ) : null}
 
