@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { MessageCircle, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { getAdminCustomers, type AdminCustomerRow } from "@/lib/admin.server";
 import { NewCustomerModal } from "./NewCustomerModal";
 
@@ -76,7 +77,7 @@ export function ClientesTab({ accessToken }: { accessToken: string }) {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 font-semibold text-pix hover:underline"
                       >
-                        <MessageCircle className="h-3.5 w-3.5" />
+                        <WhatsAppIcon className="h-3.5 w-3.5" />
                         {customer.phone}
                       </a>
                     ) : (

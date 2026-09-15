@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { MessageCircle, Plus, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { formatBRL } from "@/data/products";
 import { cn } from "@/lib/utils";
 import type { AdminDashboardData, AdminOrderRow, OrderStatus } from "@/lib/admin.server";
@@ -176,7 +177,7 @@ export function PedidosTab({
                         rel="noopener noreferrer"
                         className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-whatsapp px-3 py-1.5 text-xs font-bold text-whatsapp-foreground transition-transform hover:scale-105"
                       >
-                        <MessageCircle className="h-3.5 w-3.5" />
+                        <WhatsAppIcon className="h-3.5 w-3.5" />
                         Conversar no WhatsApp
                       </a>
                       <p className="mt-4 text-sm font-bold text-foreground">{formatBRL(order.totalAmount)}</p>
