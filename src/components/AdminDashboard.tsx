@@ -1,99 +1,76 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { LogOut, MessageCircle, Search } from "lucide-react";
+import { Bell, BellOff, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth";
-import {
-  getAdminDashboardData,
-  updateOrderStatus,
-  type AdminDashboardData,
-  type AdminOrderRow,
-  type OrderStatus,
-} from "@/lib/admin.server";
-import { formatBRL } from "@/data/products";
+import { getAdminDashboardData, updateOrderStatus, type AdminDashboardData, type OrderStatus } from "@/lib/admin.server";
+import { useOrderSound } from "@/lib/use-order-sound";
 import { cn } from "@/lib/utils";
+import { PedidosTab } from "./admin/PedidosTab";
+import { ClientesTab } from "./admin/ClientesTab";
+import { EntregasTab } from "./admin/EntregasTab";
 
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  pending: "Pendente",
-  paid: "Pago",
-  shipped: "Enviado",
-  cancelled: "Cancelado",
-};
+type Tab = "pedidos" | "clientes" | "entregas";
 
-const STATUS_BADGE_CLASS: Record<OrderStatus, string> = {
-  pending: "bg-coral/15 text-coral",
-  paid: "bg-pix/15 text-pix",
-  shipped: "bg-brandblue/15 text-brandblue",
-  cancelled: "bg-destructive/15 text-destructive",
-};
+const TABS: { id: Tab; label: string }[] = [
+  { id: "pedidos", label: "Pedidos" },
+  { id: "clientes", label: "Clientes" },
+  { id: "entregas", label: "Entregas" },
+];
 
-const STATUS_FILTERS: readonly ("all" | OrderStatus)[] = ["all", "pending", "paid", "shipped", "cancelled"];
-
-function toWhatsAppUrl(phone: string): string {
-  const digits = phone.replace(/\D/g, "");
-  const withCountryCode = digits.startsWith("55") && digits.length >= 12 ? digits : `55${digits}`;
-  return `https://api.whatsapp.com/send?phone=${withCountryCode}`;
-}
-
-function formatAddress(address: AdminOrderRow["shippingAddress"]): string {
-  const line1 = `${address.street}, ${address.number}${address.complement ? ` - ${address.complement}` : ""}`;
-  const line2 = `${address.neighborhood} — ${address.city}/${address.state}`;
-  return `${line1}\n${line2}\nCEP ${address.zip}`;
-}
+const POLL_INTERVAL_MS = 20_000;
 
 export function AdminDashboard() {
   const { session, signOut } = useAuth();
+  const accessToken = session?.access_token ?? "";
+  const [tab, setTab] = useState<Tab>("pedidos");
   const [data, setData] = useState<AdminDashboardData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
-  const [search, setSearch] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const sound = useOrderSound();
+  const firstLoad = useRef(true);
 
-  async function load() {
-    if (!session) return;
-    setLoadError(null);
+  const load = useCallback(async () => {
+    if (!accessToken) return;
     try {
-      const result = await getAdminDashboardData({ data: { accessToken: session.access_token } });
+      const result = await getAdminDashboardData({ data: { accessToken } });
       setData(result);
+      setLoadError(null);
+
+      const alertableIds = result.orders
+        .filter((o) => o.status === "pending" || o.status === "paid")
+        .map((o) => o.id);
+      if (firstLoad.current) {
+        // Prime the baseline silently on first load — only ring for orders
+        // that show up in a *later* poll.
+        sound.notifyIfNewOrders(alertableIds);
+        firstLoad.current = false;
+      } else {
+        sound.notifyIfNewOrders(alertableIds);
+      }
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : "Não foi possível carregar os pedidos.");
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken]);
 
   useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session]);
-
-  const filteredOrders = useMemo(() => {
-    if (!data) return [];
-    const query = search.trim().toLowerCase();
-    return data.orders.filter((order) => {
-      if (statusFilter !== "all" && order.status !== statusFilter) return false;
-      if (!query) return true;
-      return (
-        order.customerName.toLowerCase().includes(query) ||
-        order.id.toLowerCase().includes(query)
-      );
-    });
-  }, [data, statusFilter, search]);
+    const interval = window.setInterval(() => void load(), POLL_INTERVAL_MS);
+    return () => window.clearInterval(interval);
+  }, [load]);
 
   async function handleStatusChange(orderId: string, status: OrderStatus) {
-    if (!session) return;
+    if (!accessToken) return;
     setUpdatingId(orderId);
     try {
-      await updateOrderStatus({ data: { accessToken: session.access_token, orderId, status } });
+      await updateOrderStatus({ data: { accessToken, orderId, status } });
       setData((current) =>
         current
-          ? {
-              ...current,
-              orders: current.orders.map((o) => (o.id === orderId ? { ...o, status } : o)),
-            }
+          ? { ...current, orders: current.orders.map((o) => (o.id === orderId ? { ...o, status } : o)) }
           : current,
       );
     } catch {
-      // Silently ignore — the select will just revert visually on next load.
+      // Silently ignore — the select just reverts on the next poll.
     } finally {
       setUpdatingId(null);
     }
@@ -102,189 +79,70 @@ export function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
           <Link to="/" className="text-lg font-extrabold tracking-[0.15em] text-foreground">
             SHELL SEA <span className="text-muted-foreground">· admin</span>
           </Link>
-          <button
-            type="button"
-            onClick={() => void signOut()}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground transition-colors hover:text-destructive"
-          >
-            <LogOut className="h-4 w-4" />
-            Sair
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={sound.toggle}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors",
+                sound.enabled
+                  ? "border-pix/30 bg-pix/10 text-pix"
+                  : "border-border bg-muted text-muted-foreground",
+              )}
+              title="Clique para testar o som"
+            >
+              {sound.enabled ? <Bell className="h-3.5 w-3.5" /> : <BellOff className="h-3.5 w-3.5" />}
+              Alerta Sonoro: {sound.enabled ? "Ativado" : "Desativado"}
+              <span className="hidden sm:inline">(clique para testar)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground transition-colors hover:text-destructive"
+            >
+              <LogOut className="h-4 w-4" />
+              Sair
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl space-y-8 px-4 py-10 sm:px-6">
-        <h1 className="font-heading text-2xl font-bold text-foreground">Pedidos</h1>
+      <main className="mx-auto max-w-6xl space-y-6 px-4 py-10 sm:px-6">
+        <nav className="flex gap-2">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              className={cn(
+                "rounded-full px-5 py-2 text-sm font-bold uppercase tracking-wide transition-colors",
+                tab === t.id
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-muted/70",
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
 
-        {loadError ? (
-          <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
-            {loadError}
-          </p>
+        {tab === "pedidos" ? (
+          <PedidosTab
+            data={data}
+            loadError={loadError}
+            accessToken={accessToken}
+            updatingId={updatingId}
+            onStatusChange={handleStatusChange}
+            onRefresh={load}
+          />
         ) : null}
-
-        {!data ? (
-          <p className="text-sm text-muted-foreground">Carregando pedidos...</p>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              <SummaryCard label="Faturamento Total" value={formatBRL(data.summary.totalRevenue)} />
-              <SummaryCard label="Pedidos Pagos" value={String(data.summary.paidOrders)} />
-              <SummaryCard label="Pedidos Pendentes" value={String(data.summary.pendingOrders)} />
-              <SummaryCard label="Pedidos a Enviar" value={String(data.summary.toShipOrders)} />
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap gap-2">
-                {STATUS_FILTERS.map((status) => (
-                  <button
-                    key={status}
-                    type="button"
-                    onClick={() => setStatusFilter(status)}
-                    className={cn(
-                      "rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors",
-                      statusFilter === status
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/70",
-                    )}
-                  >
-                    {status === "all" ? "Todos" : STATUS_LABELS[status]}
-                  </button>
-                ))}
-              </div>
-              <div className="relative sm:w-64">
-                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Buscar por nome ou ID"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full rounded-full border border-border bg-card py-2 pr-3 pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring focus:outline-none"
-                />
-              </div>
-            </div>
-
-            {filteredOrders.length === 0 ? (
-              <p className="py-14 text-center text-sm text-muted-foreground">
-                Nenhum pedido encontrado para esse filtro.
-              </p>
-            ) : (
-              <ul className="space-y-4">
-                {filteredOrders.map((order) => (
-                  <li key={order.id} className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-                    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-4">
-                      <div>
-                        <p className="font-mono text-xs text-muted-foreground">{order.id}</p>
-                        <p className="text-sm font-semibold text-foreground">
-                          {format(new Date(order.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={cn(
-                            "rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide",
-                            STATUS_BADGE_CLASS[order.status],
-                          )}
-                        >
-                          {STATUS_LABELS[order.status]}
-                        </span>
-                        <select
-                          value={order.status}
-                          disabled={updatingId === order.id}
-                          onChange={(e) => handleStatusChange(order.id, e.target.value as OrderStatus)}
-                          className="rounded-md border border-border bg-background px-2 py-1 text-xs font-semibold text-foreground disabled:opacity-50"
-                        >
-                          {(Object.keys(STATUS_LABELS) as OrderStatus[]).map((status) => (
-                            <option key={status} value={status}>
-                              {STATUS_LABELS[status]}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid gap-6 lg:grid-cols-3">
-                      <div>
-                        <h3 className="text-xs font-bold tracking-[0.1em] text-muted-foreground uppercase">
-                          Comprador
-                        </h3>
-                        <p className="mt-1 text-sm font-semibold text-foreground">{order.customerName}</p>
-                        <p className="text-xs text-muted-foreground">{order.customerEmail}</p>
-                        <p className="text-xs text-muted-foreground">{order.customerPhone}</p>
-                        <a
-                          href={toWhatsAppUrl(order.customerPhone)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-whatsapp px-3 py-1.5 text-xs font-bold text-whatsapp-foreground transition-transform hover:scale-105"
-                        >
-                          <MessageCircle className="h-3.5 w-3.5" />
-                          Conversar no WhatsApp
-                        </a>
-                        <p className="mt-4 text-sm font-bold text-foreground">
-                          {formatBRL(order.totalAmount)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {order.paymentMethod ?? "Pagamento pendente"}
-                        </p>
-                      </div>
-
-                      <div>
-                        <h3 className="text-xs font-bold tracking-[0.1em] text-muted-foreground uppercase">
-                          Itens
-                        </h3>
-                        <ul className="mt-1 space-y-2">
-                          {order.items.map((item, index) => (
-                            <li key={`${item.id}-${index}`} className="flex items-center gap-2">
-                              <div className="h-10 w-9 shrink-0 overflow-hidden rounded-sm bg-muted">
-                                {item.image ? (
-                                  <img
-                                    src={item.image}
-                                    alt={item.name}
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : null}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="truncate text-xs font-semibold text-foreground">
-                                  {item.name}
-                                </p>
-                                <p className="text-[0.65rem] text-muted-foreground">
-                                  {item.size ? `Tam ${item.size} • ` : ""}Qtd {item.quantity}
-                                </p>
-                              </div>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <div>
-                        <h3 className="text-xs font-bold tracking-[0.1em] text-muted-foreground uppercase">
-                          Endereço de entrega
-                        </h3>
-                        <p className="mt-1 whitespace-pre-line text-xs text-muted-foreground">
-                          {formatAddress(order.shippingAddress)}
-                        </p>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
-        )}
+        {tab === "clientes" ? <ClientesTab accessToken={accessToken} /> : null}
+        {tab === "entregas" ? <EntregasTab accessToken={accessToken} /> : null}
       </main>
-    </div>
-  );
-}
-
-function SummaryCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-      <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{label}</p>
-      <p className="mt-1 font-heading text-xl font-bold text-foreground sm:text-2xl">{value}</p>
     </div>
   );
 }

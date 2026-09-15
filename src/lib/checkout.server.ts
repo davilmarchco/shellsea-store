@@ -19,10 +19,17 @@ const shippingAddressSchema = z.object({
   street: z.string().min(1),
   number: z.string().min(1),
   complement: z.string().optional(),
-  neighborhood: z.string().min(1),
   city: z.string().min(1),
   state: z.string().min(1).max(2),
 });
+
+/** Which neighborhood/rate was picked never comes from the client as a number —
+ * only the chosen zone's name (or "combinar") travels over the wire; the real
+ * rate is always looked up server-side from `delivery_zones`. */
+const shippingOptionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("zone"), neighborhood: z.string().min(1) }),
+  z.object({ type: z.literal("combinar") }),
+]);
 
 const checkoutInputSchema = z.object({
   items: z.array(checkoutItemSchema).min(1),
@@ -30,6 +37,7 @@ const checkoutInputSchema = z.object({
   customerEmail: z.string().email(),
   customerPhone: z.string().min(1),
   shippingAddress: shippingAddressSchema,
+  shippingOption: shippingOptionSchema,
   couponCode: z.string().optional(),
   /** Supabase access token of the logged-in customer, if any — verified server-side. */
   accessToken: z.string().optional(),
@@ -101,7 +109,25 @@ export const createCheckoutPreference = createServerFn({ method: "POST" })
       }
     }
 
-    const shippingCost = 0;
+    let shippingCost = 0;
+    let shippingMethod: string | null = null;
+    let neighborhood: string;
+    if (data.shippingOption.type === "combinar") {
+      shippingMethod = "A combinar via WhatsApp";
+      neighborhood = "A combinar com o lojista";
+    } else {
+      const { data: zone } = await supabaseAdmin
+        .from("delivery_zones")
+        .select("bairro, taxa, ativo")
+        .eq("bairro", data.shippingOption.neighborhood)
+        .maybeSingle();
+      if (!zone || !zone.ativo) {
+        throw new Error("Bairro de entrega inválido ou indisponível no momento.");
+      }
+      shippingCost = Number(zone.taxa);
+      neighborhood = zone.bairro as string;
+    }
+
     const totalAmount = subtotal - freeAccessoryDiscount - couponDiscount + shippingCost;
     if (totalAmount <= 0) throw new Error("Total do pedido inválido.");
 
@@ -121,12 +147,13 @@ export const createCheckoutPreference = createServerFn({ method: "POST" })
         customer_name: data.customerName,
         customer_email: data.customerEmail,
         customer_phone: data.customerPhone,
-        shipping_address: data.shippingAddress,
+        shipping_address: { ...data.shippingAddress, neighborhood },
         items: orderItems,
         subtotal,
         shipping_cost: shippingCost,
         total_amount: totalAmount,
         status: "pending",
+        shipping_method: shippingMethod,
       })
       .select("id")
       .single();
@@ -154,6 +181,15 @@ export const createCheckoutPreference = createServerFn({ method: "POST" })
         title: "Desconto (brinde / cupom)",
         quantity: 1,
         unit_price: -discountTotal,
+        currency_id: "BRL",
+      });
+    }
+    if (shippingCost > 0) {
+      preferenceItems.push({
+        id: "frete",
+        title: `Frete — ${neighborhood}`,
+        quantity: 1,
+        unit_price: shippingCost,
         currency_id: "BRL",
       });
     }

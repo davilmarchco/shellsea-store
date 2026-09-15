@@ -1,10 +1,11 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, Minus, Plus, ShoppingBag, X } from "lucide-react";
+import { ChevronLeft, MessageCircle, Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { EASE_OUT } from "@/lib/motion";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { useSiteUI } from "@/lib/site-ui";
 import { useAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 import { createCheckoutPreference } from "@/lib/checkout.server";
 import { formatBRL } from "@/data/products";
 import {
@@ -22,6 +23,17 @@ const inputClass =
   "w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring focus:outline-none";
 const labelClass = "text-xs font-semibold tracking-wide text-muted-foreground uppercase";
 
+/** Sentinel select value for "entrega a combinar com o lojista". */
+const COMBINAR_OPTION = "combinar";
+const STORE_WHATSAPP = "5521993734339";
+
+interface DeliveryZone {
+  id: string;
+  bairro: string;
+  taxa: number;
+  tempo: string | null;
+}
+
 interface CheckoutFormValues {
   name: string;
   email: string;
@@ -30,7 +42,7 @@ interface CheckoutFormValues {
   street: string;
   number: string;
   complement: string;
-  neighborhood: string;
+  deliveryOption: string;
   city: string;
   state: string;
 }
@@ -43,7 +55,7 @@ const EMPTY_FORM: CheckoutFormValues = {
   street: "",
   number: "",
   complement: "",
-  neighborhood: "",
+  deliveryOption: "",
   city: "",
   state: "",
 };
@@ -58,6 +70,7 @@ export function CartDrawer() {
   const [form, setForm] = useState<CheckoutFormValues>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [zones, setZones] = useState<DeliveryZone[]>([]);
   useBodyScrollLock(cartOpen);
 
   useEffect(() => {
@@ -70,11 +83,32 @@ export function CartDrawer() {
       street: current.street || profile?.address_street || "",
       number: current.number || profile?.address_number || "",
       complement: current.complement || profile?.address_complement || "",
-      neighborhood: current.neighborhood || profile?.address_neighborhood || "",
       city: current.city || profile?.address_city || "",
       state: current.state || profile?.address_state || "",
     }));
   }, [profile, session]);
+
+  useEffect(() => {
+    if (step !== "checkout" || !supabase || zones.length > 0) return;
+    supabase
+      .from("delivery_zones")
+      .select("id, bairro, taxa, tempo")
+      .eq("ativo", true)
+      .order("bairro", { ascending: true })
+      .then(({ data }) => {
+        if (data) {
+          setZones(data.map((z) => ({ ...z, taxa: Number(z.taxa) })));
+        }
+      });
+  }, [step, zones.length]);
+
+  const selectedZone = zones.find((z) => z.id === form.deliveryOption);
+  const isCombinar = form.deliveryOption === COMBINAR_OPTION;
+  const shippingCost = isCombinar ? 0 : (selectedZone?.taxa ?? 0);
+  const whatsappMessage = encodeURIComponent(
+    "Olá! Gostaria de combinar a entrega do meu pedido na SheLL Sea",
+  );
+  const whatsappUrl = `https://api.whatsapp.com/send?phone=${STORE_WHATSAPP}&text=${whatsappMessage}`;
 
   const biquiniQty = cartLines
     .filter((line) => line.product.type === "biquini")
@@ -130,6 +164,10 @@ export function CartDrawer() {
   async function handlePay(event: FormEvent) {
     event.preventDefault();
     if (submitting) return;
+    if (!form.deliveryOption) {
+      setCheckoutError("Escolha o bairro de entrega (ou a opção a combinar).");
+      return;
+    }
     setSubmitting(true);
     setCheckoutError(null);
 
@@ -149,10 +187,12 @@ export function CartDrawer() {
             street: form.street,
             number: form.number,
             complement: form.complement || undefined,
-            neighborhood: form.neighborhood,
             city: form.city,
             state: form.state,
           },
+          shippingOption: isCombinar
+            ? { type: "combinar" as const }
+            : { type: "zone" as const, neighborhood: selectedZone?.bairro ?? "" },
           couponCode: couponApplied ? coupon : undefined,
           accessToken: session?.access_token,
         },
@@ -448,14 +488,42 @@ export function CartDrawer() {
                       </label>
                       <label className="col-span-3 space-y-1">
                         <span className={labelClass}>Bairro</span>
-                        <input
-                          type="text"
+                        <select
                           required
-                          value={form.neighborhood}
-                          onChange={(e) => updateForm("neighborhood", e.target.value)}
+                          value={form.deliveryOption}
+                          onChange={(e) => updateForm("deliveryOption", e.target.value)}
                           className={inputClass}
-                        />
+                        >
+                          <option value="" disabled>
+                            Selecione o bairro
+                          </option>
+                          {zones.map((zone) => (
+                            <option key={zone.id} value={zone.id}>
+                              {zone.bairro} — {formatBRL(zone.taxa)}
+                              {zone.tempo ? ` (${zone.tempo})` : ""}
+                            </option>
+                          ))}
+                          <option value={COMBINAR_OPTION}>Entrega a combinar com o lojista</option>
+                        </select>
                       </label>
+                      {isCombinar ? (
+                        <div className="col-span-3 flex items-start gap-2 rounded-md border border-pix/30 bg-pix/10 px-3 py-2.5">
+                          <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-pix" />
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-foreground">
+                              Combine a entrega direto com a loja
+                            </p>
+                            <a
+                              href={whatsappUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-bold text-pix underline underline-offset-2"
+                            >
+                              Conversar no WhatsApp
+                            </a>
+                          </div>
+                        </div>
+                      ) : null}
                       <label className="col-span-2 space-y-1">
                         <span className={labelClass}>Cidade</span>
                         <input
@@ -483,8 +551,24 @@ export function CartDrawer() {
 
                 <div className="space-y-3 border-t border-border px-5 py-4">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Total</span>
-                    <span className="font-bold text-foreground">{formatBRL(total)}</span>
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="text-foreground">{formatBRL(total)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Frete</span>
+                    <span className="text-foreground">
+                      {form.deliveryOption
+                        ? shippingCost > 0
+                          ? formatBRL(shippingCost)
+                          : "Grátis"
+                        : "—"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-bold text-foreground">Total</span>
+                    <span className="font-bold text-foreground">
+                      {formatBRL(total + shippingCost)}
+                    </span>
                   </div>
 
                   {checkoutError ? (
