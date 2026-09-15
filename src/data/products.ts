@@ -4,7 +4,8 @@ import marePretoFront from "@/assets/products/mare-preto-front.jpg";
 import marePretoBack from "@/assets/products/mare-preto-back.jpg";
 import mareChocolateFront from "@/assets/products/mare-chocolate-front.jpg";
 import mareChocolateBack from "@/assets/products/mare-chocolate-back.jpg";
-import mareAreia from "@/assets/products/mare-areia.jpg";
+import mareAreiaFront from "@/assets/products/mare-areia-front.jpg";
+import mareAreiaBack from "@/assets/products/mare-areia-back.jpg";
 import orlaAzulBebeFront from "@/assets/products/orla-azul-bebe-front.jpg";
 import orlaAzulBebeBack from "@/assets/products/orla-azul-bebe-back.jpg";
 import orlaCastanhoFront from "@/assets/products/orla-castanho-front.jpg";
@@ -26,6 +27,8 @@ import pedraAzulPetroleo from "@/assets/products/pedra-azul-petroleo.jpg";
 import pedraAzulMarinho from "@/assets/products/pedra-azul-marinho.jpg";
 import pedraMiniLaranja from "@/assets/products/pedra-mini-laranja.jpg";
 import pedraMiniVerdeMenta from "@/assets/products/pedra-mini-verde-menta.jpg";
+import pedraAmbar from "@/assets/products/pedra-ambar.jpg";
+import pedraMiniAmbar from "@/assets/products/pedra-mini-ambar.jpg";
 
 export type SizeOption = "P" | "M" | "G";
 
@@ -111,8 +114,8 @@ export const PRODUCTS: readonly Product[] = [
   {
     id: "mare-areia",
     color: "Areia",
-    frontImage: mareAreia,
-    // Single studio photo only — the back-swap interaction is disabled for this item.
+    frontImage: mareAreiaFront,
+    backImage: mareAreiaBack,
     ...BASE,
   },
   {
@@ -218,6 +221,20 @@ export const PRODUCTS: readonly Product[] = [
     color: "Verde Menta",
     price: 1.5,
     frontImage: pedraMiniVerdeMenta,
+    ...MINI_PEDRA_BASE,
+  },
+  {
+    id: "pedra-ambar",
+    color: "Âmbar",
+    price: 2,
+    frontImage: pedraAmbar,
+    ...PEDRA_BASE,
+  },
+  {
+    id: "pedra-mini-ambar",
+    color: "Âmbar",
+    price: 1.5,
+    frontImage: pedraMiniAmbar,
     ...MINI_PEDRA_BASE,
   },
 ];
