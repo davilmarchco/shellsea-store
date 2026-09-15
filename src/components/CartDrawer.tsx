@@ -496,7 +496,7 @@ export function CartDrawer() {
                     disabled={submitting}
                     className="w-full rounded-full bg-primary px-6 py-3 text-sm font-bold tracking-[0.05em] text-primary-foreground uppercase transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {submitting ? "Processando..." : "Pagar com Mercado Pago"}
+                    {submitting ? "Processando..." : "Avançar para pagamento"}
                   </button>
                   <p className="text-center text-[0.65rem] text-muted-foreground">
                     Pix ou cartão, pelo checkout seguro do Mercado Pago.
