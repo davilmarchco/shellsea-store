@@ -23,7 +23,7 @@ const headingClass = "text-sm font-extrabold tracking-[0.12em] text-white upperc
 
 export function SiteFooter() {
   return (
-    <footer className="bg-[#0c0c0c] py-14 text-white">
+    <footer id="contato" className="bg-[#0c0c0c] py-14 text-white">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-4 sm:px-6 md:grid-cols-4 md:gap-8">
         <div className="space-y-3">
           <p className={headingClass}>Shell Sea Beachwear</p>
