@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CheckCircle2, Clock, PackageX } from "lucide-react";
+import { CheckCircle2, Clock, PackageX, Truck } from "lucide-react";
 import { z } from "zod";
 import { getOrderById } from "@/lib/orders.server";
 import { formatBRL } from "@/data/products";
@@ -133,6 +133,12 @@ function PedidoConfirmadoPage() {
             {address.neighborhood} — {address.city}/{address.state}
           </p>
           <p className="text-sm text-muted-foreground">CEP {address.zip}</p>
+          {order.shippingCost > 0 ? (
+            <p className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-pix">
+              <Truck className="h-4 w-4" />
+              Previsão de entrega: 5 dias úteis
+            </p>
+          ) : null}
         </section>
 
         <div className="flex justify-center">

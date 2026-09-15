@@ -216,6 +216,11 @@ export function PedidosTab({
                       <p className="mt-1 whitespace-pre-line text-xs text-muted-foreground">
                         {formatAddress(order.shippingAddress)}
                       </p>
+                      {order.shippingCost > 0 ? (
+                        <p className="mt-1.5 text-xs font-semibold text-pix">
+                          Previsão de entrega: 5 dias úteis
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </li>

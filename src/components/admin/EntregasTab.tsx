@@ -23,7 +23,7 @@ function toDraft(zone: AdminDeliveryZone): ZoneDraft {
   return { id: zone.id, bairro: zone.bairro, taxa: String(zone.taxa), tempo: zone.tempo ?? "", ativo: zone.ativo };
 }
 
-const NEW_ZONE_DRAFT: ZoneDraft = { bairro: "", taxa: "0", tempo: "30-45 min", ativo: true };
+const NEW_ZONE_DRAFT: ZoneDraft = { bairro: "", taxa: "0", tempo: "5 dias úteis", ativo: true };
 
 export function EntregasTab({ accessToken }: { accessToken: string }) {
   const [zones, setZones] = useState<AdminDeliveryZone[] | null>(null);
@@ -161,7 +161,7 @@ export function EntregasTab({ accessToken }: { accessToken: string }) {
                 />
                 <input
                   type="text"
-                  placeholder="Tempo"
+                  placeholder="5 dias úteis"
                   value={newZone.tempo}
                   onChange={(e) => setNewZone({ ...newZone, tempo: e.target.value })}
                   className={inputClass}
@@ -229,6 +229,7 @@ export function EntregasTab({ accessToken }: { accessToken: string }) {
                     </span>
                     <input
                       type="text"
+                      placeholder="5 dias úteis"
                       value={draft.tempo}
                       onChange={(e) => updateDraft(zone.id, { tempo: e.target.value })}
                       onBlur={() => saveZone(zone.id, drafts[zone.id]!)}

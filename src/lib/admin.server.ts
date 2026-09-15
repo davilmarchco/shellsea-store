@@ -52,6 +52,8 @@ export interface AdminOrderRow {
   customerPhone: string;
   items: OrderItemSummary[];
   shippingAddress: OrderShippingAddress;
+  shippingCost: number;
+  shippingMethod: string | null;
   totalAmount: number;
   paymentMethod: string | null;
   status: OrderStatus;
@@ -89,7 +91,7 @@ export const getAdminDashboardData = createServerFn({ method: "POST" })
     const { data: rows, error } = await supabaseAdmin
       .from("orders")
       .select(
-        "id, created_at, customer_name, customer_email, customer_phone, items, shipping_address, total_amount, payment_method, status",
+        "id, created_at, customer_name, customer_email, customer_phone, items, shipping_address, shipping_cost, shipping_method, total_amount, payment_method, status",
       )
       .order("created_at", { ascending: false });
 
@@ -103,6 +105,8 @@ export const getAdminDashboardData = createServerFn({ method: "POST" })
       customerPhone: row.customer_phone as string,
       items: row.items as OrderItemSummary[],
       shippingAddress: row.shipping_address as OrderShippingAddress,
+      shippingCost: Number(row.shipping_cost),
+      shippingMethod: row.shipping_method as string | null,
       totalAmount: Number(row.total_amount),
       paymentMethod: row.payment_method as string | null,
       status: row.status as OrderStatus,
