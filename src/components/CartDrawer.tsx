@@ -71,6 +71,7 @@ export function CartDrawer() {
   const [submitting, setSubmitting] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [zones, setZones] = useState<DeliveryZone[]>([]);
+  const [viaCepBairro, setViaCepBairro] = useState<string | null>(null);
   useBodyScrollLock(cartOpen);
 
   useEffect(() => {
@@ -88,6 +89,9 @@ export function CartDrawer() {
     }));
   }, [profile, session]);
 
+  // Fetches the active delivery zones as soon as the checkout step opens, and
+  // — so `shippingOption` is never left unset — defaults the selection to the
+  // first zone right away. A CEP-based match (below) can then override it.
   useEffect(() => {
     if (step !== "checkout" || !supabase || zones.length > 0) return;
     supabase
@@ -96,11 +100,57 @@ export function CartDrawer() {
       .eq("ativo", true)
       .order("bairro", { ascending: true })
       .then(({ data }) => {
-        if (data) {
-          setZones(data.map((z) => ({ ...z, taxa: Number(z.taxa) })));
+        if (data && data.length > 0) {
+          const mapped = data.map((z) => ({ ...z, taxa: Number(z.taxa) }));
+          setZones(mapped);
+          setForm((current) =>
+            current.deliveryOption ? current : { ...current, deliveryOption: mapped[0]!.id },
+          );
         }
       });
   }, [step, zones.length]);
+
+  // Once ViaCEP resolves a bairro for the typed CEP, try to match it against
+  // the delivery zones and auto-select it (without overriding a manual pick).
+  useEffect(() => {
+    if (!viaCepBairro || zones.length === 0) return;
+    const normalize = (s: string) =>
+      s
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .toLowerCase()
+        .trim();
+    const target = normalize(viaCepBairro);
+    const match =
+      zones.find((z) => normalize(z.bairro) === target) ??
+      zones.find((z) => normalize(z.bairro).includes(target) || target.includes(normalize(z.bairro)));
+    if (match) updateForm("deliveryOption", match.id);
+  }, [viaCepBairro, zones]);
+
+  async function handleCepBlur() {
+    const digits = form.zip.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const result = (await response.json()) as {
+        erro?: boolean;
+        logradouro?: string;
+        bairro?: string;
+        localidade?: string;
+        uf?: string;
+      };
+      if (result.erro) return;
+      setForm((current) => ({
+        ...current,
+        street: result.logradouro || current.street,
+        city: result.localidade || current.city,
+        state: (result.uf || current.state).toUpperCase(),
+      }));
+      if (result.bairro) setViaCepBairro(result.bairro);
+    } catch {
+      // CEP lookup is a convenience, not a requirement — ignore failures.
+    }
+  }
 
   const selectedZone = zones.find((z) => z.id === form.deliveryOption);
   const isCombinar = form.deliveryOption === COMBINAR_OPTION;
@@ -191,8 +241,8 @@ export function CartDrawer() {
             state: form.state,
           },
           shippingOption: isCombinar
-            ? { type: "combinar" as const }
-            : { type: "zone" as const, neighborhood: selectedZone?.bairro ?? "" },
+            ? { type: "custom_pickup" as const }
+            : { type: "neighborhood_delivery" as const, neighborhood: selectedZone?.bairro ?? "" },
           couponCode: couponApplied ? coupon : undefined,
           accessToken: session?.access_token,
         },
@@ -454,6 +504,7 @@ export function CartDrawer() {
                           required
                           value={form.zip}
                           onChange={(e) => updateForm("zip", e.target.value)}
+                          onBlur={() => void handleCepBlur()}
                           className={inputClass}
                         />
                       </label>

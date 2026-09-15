@@ -24,9 +24,13 @@ const shippingAddressSchema = z.object({
 });
 
 /** Which neighborhood/rate was picked never comes from the client as a number —
- * only the chosen zone's name (or "combinar") travels over the wire; the real
- * rate is always looked up server-side from `delivery_zones`. */
+ * only the chosen zone's name (or the "combine over WhatsApp" flag) travels
+ * over the wire; the real rate is always looked up server-side from
+ * `delivery_zones`. Accepts both the current and the previous (pre-rename)
+ * literal names so an old cached client bundle can't hard-fail checkout. */
 const shippingOptionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("neighborhood_delivery"), neighborhood: z.string().min(1) }),
+  z.object({ type: z.literal("custom_pickup") }),
   z.object({ type: z.literal("zone"), neighborhood: z.string().min(1) }),
   z.object({ type: z.literal("combinar") }),
 ]);
@@ -72,7 +76,17 @@ function computeFreeAccessoryDiscount(
 }
 
 export const createCheckoutPreference = createServerFn({ method: "POST" })
-  .validator((input: z.infer<typeof checkoutInputSchema>) => checkoutInputSchema.parse(input))
+  .validator((input: unknown) => {
+    const result = checkoutInputSchema.safeParse(input);
+    if (!result.success) {
+      // Never leak the raw ZodError JSON to the customer — a stale field or a
+      // half-filled form should read as a normal, friendly message.
+      throw new Error(
+        "Não foi possível validar os dados do pedido. Atualize a página, revise o formulário e tente novamente.",
+      );
+    }
+    return result.data;
+  })
   .handler(async ({ data }) => {
     if (!supabaseAdmin) {
       throw new Error(
@@ -112,7 +126,7 @@ export const createCheckoutPreference = createServerFn({ method: "POST" })
     let shippingCost = 0;
     let shippingMethod: string | null = null;
     let neighborhood: string;
-    if (data.shippingOption.type === "combinar") {
+    if (data.shippingOption.type === "custom_pickup" || data.shippingOption.type === "combinar") {
       shippingMethod = "A combinar via WhatsApp";
       neighborhood = "A combinar com o lojista";
     } else {
