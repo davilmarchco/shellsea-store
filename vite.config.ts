@@ -7,6 +7,15 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
+  // Site is hosted on Vercel (shellsea.com.br), not Cloudflare — force the nitro
+  // "vercel" preset so `npm run build` emits a Vercel Build Output API v3 bundle
+  // (.vercel/output) with real serverless functions for our API/webhook routes.
+  // Building inside Lovable's own sandbox still forces cloudflare-module
+  // regardless of this setting (see vite-tanstack-config's isSandbox branch),
+  // so local Lovable previews/publishes are unaffected.
+  nitro: {
+    preset: "vercel",
+  },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this

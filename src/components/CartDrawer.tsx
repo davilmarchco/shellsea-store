@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, Minus, Plus, ShoppingBag, X } from "lucide-react";
+import { ChevronLeft, Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { EASE_OUT } from "@/lib/motion";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 import { useSiteUI } from "@/lib/site-ui";
+import { useAuth } from "@/lib/auth";
+import { createCheckoutPreference } from "@/lib/checkout.server";
 import { formatBRL } from "@/data/products";
 import {
   COUPON_CODE,
@@ -14,14 +16,65 @@ import {
 } from "@/lib/coupon";
 
 type CouponStatus = "idle" | "invalid" | "inactive" | "used" | "applied";
+type Step = "cart" | "checkout";
+
+const inputClass =
+  "w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring focus:outline-none";
+const labelClass = "text-xs font-semibold tracking-wide text-muted-foreground uppercase";
+
+interface CheckoutFormValues {
+  name: string;
+  email: string;
+  phone: string;
+  zip: string;
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+}
+
+const EMPTY_FORM: CheckoutFormValues = {
+  name: "",
+  email: "",
+  phone: "",
+  zip: "",
+  street: "",
+  number: "",
+  complement: "",
+  neighborhood: "",
+  city: "",
+  state: "",
+};
 
 export function CartDrawer() {
   const { cartOpen, closeCart, cartLines, removeFromCart, setLineQty, clearCart } = useSiteUI();
+  const { session, profile } = useAuth();
+  const [step, setStep] = useState<Step>("cart");
   const [coupon, setCoupon] = useState("");
   const [couponApplied, setCouponApplied] = useState(false);
   const [couponStatus, setCouponStatus] = useState<CouponStatus>("idle");
-  const [orderPlaced, setOrderPlaced] = useState(false);
+  const [form, setForm] = useState<CheckoutFormValues>(EMPTY_FORM);
+  const [submitting, setSubmitting] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   useBodyScrollLock(cartOpen);
+
+  useEffect(() => {
+    setForm((current) => ({
+      ...current,
+      name: current.name || profile?.full_name || "",
+      email: current.email || session?.user.email || "",
+      phone: current.phone || profile?.phone || "",
+      zip: current.zip || profile?.address_zip || "",
+      street: current.street || profile?.address_street || "",
+      number: current.number || profile?.address_number || "",
+      complement: current.complement || profile?.address_complement || "",
+      neighborhood: current.neighborhood || profile?.address_neighborhood || "",
+      city: current.city || profile?.address_city || "",
+      state: current.state || profile?.address_state || "",
+    }));
+  }, [profile, session]);
 
   const biquiniQty = cartLines
     .filter((line) => line.product.type === "biquini")
@@ -66,18 +119,56 @@ export function CartDrawer() {
 
   function handleClose() {
     closeCart();
-    if (orderPlaced) {
-      setOrderPlaced(false);
-      setCoupon("");
-      setCouponApplied(false);
-      setCouponStatus("idle");
-    }
+    setStep("cart");
+    setCheckoutError(null);
   }
 
-  function handleCheckout() {
-    if (couponApplied) markFirstPurchaseCouponUsed();
-    setOrderPlaced(true);
-    clearCart();
+  function updateForm<K extends keyof CheckoutFormValues>(key: K, value: string) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  async function handlePay(event: FormEvent) {
+    event.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setCheckoutError(null);
+
+    try {
+      const result = await createCheckoutPreference({
+        data: {
+          items: cartLines.map((line) => ({
+            productId: line.product.id,
+            qty: line.qty,
+            size: line.product.type === "biquini" ? line.size : undefined,
+          })),
+          customerName: form.name,
+          customerEmail: form.email,
+          customerPhone: form.phone,
+          shippingAddress: {
+            zip: form.zip,
+            street: form.street,
+            number: form.number,
+            complement: form.complement || undefined,
+            neighborhood: form.neighborhood,
+            city: form.city,
+            state: form.state,
+          },
+          couponCode: couponApplied ? coupon : undefined,
+          accessToken: session?.access_token,
+        },
+      });
+
+      if (couponApplied) markFirstPurchaseCouponUsed();
+      clearCart();
+      window.location.href = result.checkoutUrl;
+    } catch (error) {
+      setSubmitting(false);
+      setCheckoutError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível iniciar o pagamento. Tente novamente.",
+      );
+    }
   }
 
   return (
@@ -103,9 +194,21 @@ export function CartDrawer() {
             transition={{ duration: 0.35, ease: EASE_OUT }}
           >
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
-              <p className="font-heading text-sm font-bold tracking-[0.15em] text-foreground uppercase">
-                Sua sacola
-              </p>
+              <div className="flex items-center gap-2">
+                {step === "checkout" ? (
+                  <button
+                    type="button"
+                    onClick={() => setStep("cart")}
+                    aria-label="Voltar para a sacola"
+                    className="grid h-8 w-8 place-items-center rounded-full text-foreground transition-colors hover:bg-muted"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                ) : null}
+                <p className="font-heading text-sm font-bold tracking-[0.15em] text-foreground uppercase">
+                  {step === "cart" ? "Sua sacola" : "Dados de entrega"}
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={handleClose}
@@ -116,25 +219,7 @@ export function CartDrawer() {
               </button>
             </div>
 
-            {orderPlaced ? (
-              <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-                <CheckCircle2 className="h-14 w-14 text-pix" />
-                <p className="font-heading text-lg font-bold text-foreground">
-                  Pedido realizado com sucesso!
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Sua compra foi feita 100% pelo nosso site. Em breve entraremos em contato para
-                  combinar a entrega.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="mt-4 rounded-full bg-primary px-6 py-3 text-sm font-bold tracking-[0.05em] text-primary-foreground uppercase transition-colors hover:bg-primary/90"
-                >
-                  Continuar comprando
-                </button>
-              </div>
-            ) : (
+            {step === "cart" ? (
               <>
                 <div className="flex-1 overflow-y-auto px-5 py-4">
                   {cartLines.length === 0 ? (
@@ -265,7 +350,7 @@ export function CartDrawer() {
 
                     <button
                       type="button"
-                      onClick={handleCheckout}
+                      onClick={() => setStep("checkout")}
                       className="w-full rounded-full bg-primary px-6 py-3 text-sm font-bold tracking-[0.05em] text-primary-foreground uppercase transition-colors hover:bg-primary/90"
                     >
                       Finalizar compra
@@ -276,6 +361,148 @@ export function CartDrawer() {
                   </div>
                 ) : null}
               </>
+            ) : (
+              <form onSubmit={handlePay} className="flex flex-1 flex-col overflow-y-auto">
+                <div className="flex-1 space-y-5 px-5 py-4">
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-bold tracking-[0.15em] text-foreground uppercase">
+                      Seus dados
+                    </h3>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <label className="space-y-1 sm:col-span-2">
+                        <span className={labelClass}>Nome completo</span>
+                        <input
+                          type="text"
+                          required
+                          value={form.name}
+                          onChange={(e) => updateForm("name", e.target.value)}
+                          className={inputClass}
+                        />
+                      </label>
+                      <label className="space-y-1">
+                        <span className={labelClass}>E-mail</span>
+                        <input
+                          type="email"
+                          required
+                          value={form.email}
+                          onChange={(e) => updateForm("email", e.target.value)}
+                          className={inputClass}
+                        />
+                      </label>
+                      <label className="space-y-1">
+                        <span className={labelClass}>Celular</span>
+                        <input
+                          type="tel"
+                          required
+                          value={form.phone}
+                          onChange={(e) => updateForm("phone", e.target.value)}
+                          className={inputClass}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-bold tracking-[0.15em] text-foreground uppercase">
+                      Endereço de entrega
+                    </h3>
+                    <div className="grid grid-cols-3 gap-3">
+                      <label className="col-span-1 space-y-1">
+                        <span className={labelClass}>CEP</span>
+                        <input
+                          type="text"
+                          required
+                          value={form.zip}
+                          onChange={(e) => updateForm("zip", e.target.value)}
+                          className={inputClass}
+                        />
+                      </label>
+                      <label className="col-span-2 space-y-1">
+                        <span className={labelClass}>Rua</span>
+                        <input
+                          type="text"
+                          required
+                          value={form.street}
+                          onChange={(e) => updateForm("street", e.target.value)}
+                          className={inputClass}
+                        />
+                      </label>
+                      <label className="col-span-1 space-y-1">
+                        <span className={labelClass}>Número</span>
+                        <input
+                          type="text"
+                          required
+                          value={form.number}
+                          onChange={(e) => updateForm("number", e.target.value)}
+                          className={inputClass}
+                        />
+                      </label>
+                      <label className="col-span-2 space-y-1">
+                        <span className={labelClass}>Complemento</span>
+                        <input
+                          type="text"
+                          value={form.complement}
+                          onChange={(e) => updateForm("complement", e.target.value)}
+                          className={inputClass}
+                        />
+                      </label>
+                      <label className="col-span-3 space-y-1">
+                        <span className={labelClass}>Bairro</span>
+                        <input
+                          type="text"
+                          required
+                          value={form.neighborhood}
+                          onChange={(e) => updateForm("neighborhood", e.target.value)}
+                          className={inputClass}
+                        />
+                      </label>
+                      <label className="col-span-2 space-y-1">
+                        <span className={labelClass}>Cidade</span>
+                        <input
+                          type="text"
+                          required
+                          value={form.city}
+                          onChange={(e) => updateForm("city", e.target.value)}
+                          className={inputClass}
+                        />
+                      </label>
+                      <label className="col-span-1 space-y-1">
+                        <span className={labelClass}>UF</span>
+                        <input
+                          type="text"
+                          required
+                          maxLength={2}
+                          value={form.state}
+                          onChange={(e) => updateForm("state", e.target.value.toUpperCase())}
+                          className={inputClass}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3 border-t border-border px-5 py-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Total</span>
+                    <span className="font-bold text-foreground">{formatBRL(total)}</span>
+                  </div>
+
+                  {checkoutError ? (
+                    <p className="text-xs font-semibold text-destructive">{checkoutError}</p>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="w-full rounded-full bg-primary px-6 py-3 text-sm font-bold tracking-[0.05em] text-primary-foreground uppercase transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {submitting ? "Processando..." : "Pagar com Mercado Pago"}
+                  </button>
+                  <p className="text-center text-[0.65rem] text-muted-foreground">
+                    Pix ou cartão, pelo checkout seguro do Mercado Pago.
+                  </p>
+                </div>
+              </form>
             )}
           </motion.aside>
         </>
