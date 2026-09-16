@@ -109,19 +109,12 @@ export const createCheckoutPreference = createServerFn({ method: "POST" })
     const freeAccessoryDiscount = computeFreeAccessoryDiscount(lines);
 
     const verifiedCustomerId = await getVerifiedCustomerId(data.accessToken);
-    let couponDiscount = 0;
-    if (data.couponCode && isCouponCodeValid(data.couponCode)) {
-      if (verifiedCustomerId) {
-        const { data: customer } = await supabaseAdmin
-          .from("customers")
-          .select("has_ordered")
-          .eq("id", verifiedCustomerId)
-          .maybeSingle();
-        if (customer && !customer.has_ordered) {
-          couponDiscount = (subtotal - freeAccessoryDiscount) * COUPON_DISCOUNT;
-        }
-      }
-    }
+    // A valid coupon applies immediately for anyone — guest or logged in, no
+    // welcome-popup or first-purchase gate. Only the code itself is checked.
+    const couponDiscount =
+      data.couponCode && isCouponCodeValid(data.couponCode)
+        ? (subtotal - freeAccessoryDiscount) * COUPON_DISCOUNT
+        : 0;
 
     let shippingCost = 0;
     let shippingMethod: string | null = null;

@@ -14,12 +14,11 @@ import {
   COUPON_CODE,
   COUPON_DISCOUNT,
   hasUsedFirstPurchaseCoupon,
-  isCouponActive,
   isCouponCodeValid,
   markFirstPurchaseCouponUsed,
 } from "@/lib/coupon";
 
-type CouponStatus = "idle" | "invalid" | "inactive" | "used" | "applied";
+type CouponStatus = "idle" | "invalid" | "used" | "applied";
 type Step = "cart" | "checkout";
 type DeliveryMode = "" | "address" | "pickup";
 
@@ -193,11 +192,6 @@ export function CartDrawer() {
   function applyCoupon() {
     if (!isCouponCodeValid(coupon)) {
       setCouponStatus("invalid");
-      setCouponApplied(false);
-      return;
-    }
-    if (!isCouponActive()) {
-      setCouponStatus("inactive");
       setCouponApplied(false);
       return;
     }
@@ -475,12 +469,6 @@ export function CartDrawer() {
                     </div>
                     {couponStatus === "invalid" ? (
                       <p className="text-xs font-semibold text-destructive">Cupom inválido.</p>
-                    ) : null}
-                    {couponStatus === "inactive" ? (
-                      <p className="text-xs font-semibold text-destructive">
-                        Cupom ainda não ativado. Cadastre-se no pop-up de boas-vindas para resgatar
-                        seu desconto.
-                      </p>
                     ) : null}
                     {couponStatus === "used" ? (
                       <p className="text-xs font-semibold text-destructive">

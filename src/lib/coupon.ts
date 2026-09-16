@@ -1,7 +1,8 @@
 export const COUPON_CODE = "MARDECONCHAS";
 export const COUPON_DISCOUNT = 0.1;
 
-/** Set by DiscountPopup once the customer finishes the signup form — this "activates" the coupon. */
+/** Set by DiscountPopup once the customer finishes the signup form — used only
+ * to avoid re-showing that popup in this browser. Not a coupon requirement. */
 export const DISCOUNT_POPUP_STORAGE_KEY = "shellsea_discount_popup";
 const COUPON_USED_STORAGE_KEY = "shellsea_first_purchase_coupon_used";
 
@@ -22,12 +23,6 @@ export function normalizeCouponCode(code: string): string {
 
 export function isCouponCodeValid(code: string): boolean {
   return normalizeCouponCode(code) === COUPON_CODE;
-}
-
-/** The coupon only works after the customer has redeemed it via the discount popup signup. */
-export function isCouponActive(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.localStorage.getItem(DISCOUNT_POPUP_STORAGE_KEY) === "subscribed";
 }
 
 /** The coupon is valid on the customer's first purchase only. */
