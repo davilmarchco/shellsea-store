@@ -6,8 +6,7 @@ const NAV_LINKS = [
 ] as const;
 
 const SUPPORT_ITEMS = [
-  { label: "🌺 Atendimento WhatsApp", href: "https://wa.me/5521993734339", external: true },
-  { label: "Tabela de Medidas" },
+  { label: "🌺 Atendimento WhatsApp", href: "https://wa.me/5521966273320", external: true },
   { label: "Personalização de Biquínis", href: "#vitrine" },
 ] as const;
 
@@ -53,24 +52,18 @@ export function SiteFooter() {
         <div className="space-y-3">
           <p className={headingClass}>Contato &amp; Suporte</p>
           <ul className="space-y-2">
-            {SUPPORT_ITEMS.map((item) =>
-              "href" in item ? (
-                <li key={item.label}>
-                  <a
-                    href={item.href}
-                    target={"external" in item && item.external ? "_blank" : undefined}
-                    rel={"external" in item && item.external ? "noopener noreferrer" : undefined}
-                    className={linkClass}
-                  >
-                    {item.label}
-                  </a>
-                </li>
-              ) : (
-                <li key={item.label} className="text-sm text-white/70">
+            {SUPPORT_ITEMS.map((item) => (
+              <li key={item.label}>
+                <a
+                  href={item.href}
+                  target={"external" in item && item.external ? "_blank" : undefined}
+                  rel={"external" in item && item.external ? "noopener noreferrer" : undefined}
+                  className={linkClass}
+                >
                   {item.label}
-                </li>
-              ),
-            )}
+                </a>
+              </li>
+            ))}
           </ul>
         </div>
 

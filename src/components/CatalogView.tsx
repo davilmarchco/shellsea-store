@@ -38,7 +38,7 @@ const CATALOG_COPY: Record<
   },
   pedra: {
     title: "Pedras SheLL Sea",
-    subtitle: "A energia natural do mar, em pedras naturais para personalizar sua peça.",
+    subtitle: "Brilho e acabamento exclusivos para personalizar sua peça com o estilo do mar.",
     empty: "Novas pedras chegando em breve.",
     promo:
       "O biquíni acompanha uma pedra ou pingente à sua escolha gratuitamente. Adicione outros acessórios pelo valor de cada peça.",

@@ -25,7 +25,7 @@ const CATEGORY_CARDS: readonly {
   {
     type: "pedra",
     title: "Pedras",
-    subtitle: "A energia natural do mar no seu look",
+    subtitle: "Brilho e acabamento para dar um toque especial ao seu look",
     gradient: "from-teal via-cream/40 to-petrol",
     image: pedraVerdeMenta?.frontImage,
   },

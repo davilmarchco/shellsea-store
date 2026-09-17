@@ -4,7 +4,7 @@ import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 export function WhatsAppButton() {
   return (
     <a
-      href="https://wa.me/5521993734339"
+      href="https://wa.me/5521966273320"
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Atendimento e suporte no WhatsApp"

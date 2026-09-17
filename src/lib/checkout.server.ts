@@ -144,7 +144,7 @@ export const createCheckoutPreference = createServerFn({ method: "POST" })
     }
     if (!mercadoPagoConfig) {
       throw new Error(
-        "Pagamento indisponível: MERCADOPAGO_ACCESS_TOKEN não configurado no servidor.",
+        "Pagamento indisponível: MERCADO_PAGO_ACCESS_TOKEN não configurado no servidor.",
       );
     }
 
