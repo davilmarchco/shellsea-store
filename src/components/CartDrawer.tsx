@@ -167,6 +167,14 @@ export function CartDrawer() {
   const pickupWhatsappUrl = `https://api.whatsapp.com/send?phone=${STORE_WHATSAPP}&text=${encodeURIComponent(
     "Olá! Gostaria de combinar a retirada do meu pedido na SheLL Sea",
   )}`;
+  const checkoutFallbackMessage = [
+    "Olá! Tive uma instabilidade ao tentar pagar no site e gostaria de concluir meu pedido por aqui.",
+    couponApplied ? `Cupom: ${COUPON_CODE}` : null,
+    `Nome: ${form.name || "-"}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  const checkoutFallbackWhatsappUrl = `https://api.whatsapp.com/send?phone=${STORE_WHATSAPP}&text=${encodeURIComponent(checkoutFallbackMessage)}`;
 
   const biquiniQty = cartLines
     .filter((line) => line.product.type === "biquini")
@@ -738,7 +746,18 @@ export function CartDrawer() {
                     </div>
 
                     {checkoutError ? (
-                      <p className="text-xs font-semibold text-destructive">{checkoutError}</p>
+                      <div className="space-y-2 rounded-2xl border border-destructive/25 bg-destructive/5 px-4 py-3">
+                        <p className="text-xs font-semibold text-destructive">{checkoutError}</p>
+                        <a
+                          href={checkoutFallbackWhatsappUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-full bg-whatsapp px-3 py-1.5 text-xs font-bold text-whatsapp-foreground transition-transform hover:scale-105"
+                        >
+                          <WhatsAppIcon className="h-3.5 w-3.5" />
+                          Concluir pelo WhatsApp
+                        </a>
+                      </div>
                     ) : null}
 
                     <button

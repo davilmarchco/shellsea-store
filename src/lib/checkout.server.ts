@@ -59,6 +59,55 @@ async function getVerifiedCustomerId(accessToken: string | undefined): Promise<s
   return data.user.id;
 }
 
+/**
+ * Mercado Pago's Preference API rejects any item with `unit_price <= 0`, so a
+ * discount can never ride as its own negative line item — that was silently
+ * failing every checkout with a coupon or a free accessory (i.e. almost every
+ * real order). Instead, spread the discount proportionally across the real
+ * items, keeping every unit_price positive. Works in integer cents so the
+ * totals reconcile exactly instead of drifting from float rounding.
+ */
+function distributeDiscountAcrossItems(
+  items: { id: string; name: string; price: number; quantity: number; image: string | null }[],
+  discountTotal: number,
+): { id: string; name: string; quantity: number; unit_price: number; image: string | null }[] {
+  const toCents = (value: number) => Math.round(value * 100);
+  const lineTotalCents = items.reduce((sum, item) => sum + toCents(item.price) * item.quantity, 0);
+  const discountCents = Math.max(0, Math.min(toCents(discountTotal), lineTotalCents - items.length));
+
+  let remainingDiscountCents = discountCents;
+  return items.map((item, index) => {
+    const itemTotalCents = toCents(item.price) * item.quantity;
+    const isLast = index === items.length - 1;
+    const shareCents = isLast
+      ? remainingDiscountCents
+      : Math.min(
+          Math.round((itemTotalCents / lineTotalCents) * discountCents),
+          itemTotalCents - item.quantity,
+        );
+    remainingDiscountCents -= shareCents;
+    const discountedTotalCents = itemTotalCents - shareCents;
+    const unitPriceCents = Math.max(1, Math.round(discountedTotalCents / item.quantity));
+    return {
+      id: item.id,
+      name: item.name,
+      quantity: item.quantity,
+      unit_price: unitPriceCents / 100,
+      image: item.image,
+    };
+  });
+}
+
+/** Guards against back_urls/notification_url ever pointing at a dev origin —
+ * Mercado Pago's `auto_return: "approved"` requires a strictly valid,
+ * publicly reachable `back_urls.success`. */
+function assertProductionOrigin(origin: string): void {
+  if (!origin.startsWith("https://") || origin.includes("localhost")) {
+    console.error("[checkout] origin inválida para URLs do Mercado Pago:", origin);
+    throw new Error("URL da loja mal configurada no servidor (APP_URL). Contate o suporte.");
+  }
+}
+
 /** Same "1 free accessory per biquíni" rule as the cart drawer, recomputed
  * server-side from verified catalog prices — never trust client-sent totals. */
 function computeFreeAccessoryDiscount(
@@ -172,54 +221,46 @@ export const createCheckoutPreference = createServerFn({ method: "POST" })
     // Prefer the configured production URL so back/notification URLs stay stable
     // behind proxies/CDNs; fall back to the incoming request's own origin (dev).
     const origin = process.env["APP_URL"] ?? getRequestUrl().origin;
+    assertProductionOrigin(origin);
     const discountTotal = freeAccessoryDiscount + couponDiscount;
 
-    const preferenceItems = orderItems.map((item) => ({
+    const preferenceItems = distributeDiscountAcrossItems(orderItems, discountTotal).map((item) => ({
       id: item.id,
       title: item.name,
       quantity: item.quantity,
-      unit_price: item.price,
+      unit_price: item.unit_price,
       currency_id: "BRL",
       ...(item.image ? { picture_url: item.image } : {}),
     }));
-    if (discountTotal > 0) {
-      preferenceItems.push({
-        id: "desconto",
-        title: "Desconto (brinde / cupom)",
-        quantity: 1,
-        unit_price: -discountTotal,
-        currency_id: "BRL",
-      });
-    }
     if (shippingCost > 0) {
       preferenceItems.push({
         id: "frete",
         title: `Frete — ${neighborhood}`,
         quantity: 1,
-        unit_price: shippingCost,
+        unit_price: Number(shippingCost.toFixed(2)),
         currency_id: "BRL",
       });
     }
 
+    const preferenceBody = {
+      items: preferenceItems,
+      payer: {
+        name: data.customerName,
+        email: data.customerEmail,
+        phone: { number: data.customerPhone.replace(/\D/g, "") },
+      },
+      external_reference: order.id,
+      notification_url: `${origin}/api/webhooks/mercadopago`,
+      back_urls: {
+        success: `${origin}/pedido-confirmado?order_id=${order.id}`,
+        pending: `${origin}/pedido-confirmado?order_id=${order.id}`,
+        failure: `${origin}/?checkout=failure`,
+      },
+      auto_return: "approved" as const,
+    };
+
     try {
-      const preference = await new Preference(mercadoPagoConfig).create({
-        body: {
-          items: preferenceItems,
-          payer: {
-            name: data.customerName,
-            email: data.customerEmail,
-            phone: { number: data.customerPhone },
-          },
-          external_reference: order.id,
-          notification_url: `${origin}/api/webhooks/mercadopago`,
-          back_urls: {
-            success: `${origin}/pedido-confirmado?order_id=${order.id}`,
-            pending: `${origin}/pedido-confirmado?order_id=${order.id}`,
-            failure: `${origin}/?checkout=failure`,
-          },
-          auto_return: "approved",
-        },
-      });
+      const preference = await new Preference(mercadoPagoConfig).create({ body: preferenceBody });
 
       const checkoutUrl = isMercadoPagoTestToken
         ? preference.sandbox_init_point
@@ -230,8 +271,27 @@ export const createCheckoutPreference = createServerFn({ method: "POST" })
     } catch (mpError) {
       // Don't leave a dangling pending order if the preference couldn't be created.
       await supabaseAdmin.from("orders").update({ status: "cancelled" }).eq("id", order.id);
-      throw mpError instanceof Error
-        ? mpError
-        : new Error("Erro ao criar preferência de pagamento no Mercado Pago.");
+
+      const mpDetails =
+        mpError && typeof mpError === "object"
+          ? {
+              status: (mpError as { status?: unknown }).status,
+              error: (mpError as { error?: unknown }).error,
+              message: (mpError as { message?: unknown }).message,
+              causes: (mpError as { causes?: unknown }).causes,
+            }
+          : mpError;
+      console.error(
+        "[checkout] Mercado Pago rejeitou a criação da preferência.\nPayload enviado:",
+        JSON.stringify(preferenceBody, null, 2),
+        "\nErro retornado pelo Mercado Pago:",
+        JSON.stringify(mpDetails, null, 2),
+      );
+
+      // Never surface the raw Mercado Pago/SDK error message to the customer —
+      // log it above for debugging, but show a friendly, actionable message.
+      throw new Error(
+        "Tivemos uma instabilidade momentânea no gateway de pagamento. Tente novamente em instantes ou fale com a gente no WhatsApp para concluir seu pedido.",
+      );
     }
   });
